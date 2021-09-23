@@ -29,14 +29,17 @@ func (p *DockerListener) Init() error {
 	for {
 		select {
 		case event := <-eventsch:
-			if event.Action == "start" || event.Action == "die" {
+			if event.Action == "start" || event.Action == "kill" {
 				json, err := cli.ContainerInspect(ctx, event.ID)
 				if err != nil {
 					fmt.Print("error")
 				}
 
+				fmt.Println(json.NetworkSettings.IPAddress, json.Config.Hostname, "#", event.Action)
 				for _, el := range json.NetworkSettings.Networks {
-					fmt.Println(el.IPAddress, strings.Join(el.Aliases, " "), event.Action)
+					if len(el.Aliases) > 0 {
+						fmt.Println(el.IPAddress, strings.Join(el.Aliases, " "), "#", event.Action)
+					}
 				}
 
 			}
