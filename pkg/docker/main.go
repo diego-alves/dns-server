@@ -20,7 +20,7 @@ type DockerListener struct {
 
 const (
 	START Action = "start"
-	KILL  Action = "stop"
+	KILL  Action = "kill"
 )
 
 func NewDockerListeger(onStart chan<- []string, onKill chan<- string) *DockerListener {
@@ -43,15 +43,18 @@ func (l *DockerListener) entries(id string) (map[string][]string, error) {
 		return nil, err
 	}
 
-	entries[json.NetworkSettings.IPAddress] = []string{json.Config.Hostname}
+	hostname := json.Config.Hostname
+	if json.NetworkSettings.IPAddress != "" {
+		entries[json.NetworkSettings.IPAddress] = []string{hostname}
+	}
 
 	for _, network := range json.NetworkSettings.Networks {
 		if len(network.Aliases) > 0 {
+			hosts := append([]string{hostname}, network.Aliases...)
 			if val, ok := entries[network.IPAddress]; ok {
-				entries[network.IPAddress] = append(val, network.Aliases...)
-			} else {
-				entries[network.IPAddress] = network.Aliases
+				hosts = append(hosts, val...)
 			}
+			entries[network.IPAddress] = hosts
 		}
 	}
 
@@ -60,7 +63,7 @@ func (l *DockerListener) entries(id string) (map[string][]string, error) {
 
 func (l *DockerListener) notify(entries map[string][]string, action Action) {
 	for ip, hosts := range entries {
-		fmt.Println("notify", ip, action)
+		fmt.Println(action, ip, hosts)
 		switch action {
 		case START:
 			l.onStart <- append([]string{ip}, hosts...)

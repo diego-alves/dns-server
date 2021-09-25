@@ -14,36 +14,43 @@ type HostsFile struct {
 type ChangeFunc func(line string) *string
 type AppendFunc func() *string
 
-func (h *HostsFile) change(foo ChangeFunc, app AppendFunc) {
-	h.mu.Lock() // Threading safe on modify host file
-	defer h.mu.Unlock()
-
-	file, err := os.ReadFile("hosts")
+func (h *HostsFile) read() []string {
+	h.mu.Lock()
+	file, err := os.ReadFile("/etc/hosts")
 	if err != nil {
 		log.Fatal(err)
 	}
+	return strings.Split(string(file), "\n")
+}
+
+func (h *HostsFile) write(lines []string) {
+	out := strings.Join(lines, "\n")
+	err := os.WriteFile("/etc/hosts", []byte(out), 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	h.mu.Unlock()
+}
+
+func (h *HostsFile) change(alterLine ChangeFunc, lastLine AppendFunc) {
+	lines := h.read()
 
 	i := 0
-	lines := strings.Split(string(file), "\n")
 	for _, line := range lines {
-		new_line := foo(line)
-		if new_line != nil {
+		new_line := alterLine(line)
+		if new_line != nil { // removes
 			lines[i] = *new_line
 			i++
 		}
 	}
 	lines = lines[:i]
 
-	last := app()
+	last := lastLine()
 	if last != nil {
 		lines = append(lines, *last)
 	}
 
-	out := strings.Join(lines, "\n")
-	err = os.WriteFile("hosts", []byte(out), 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
+	h.write(lines)
 }
 
 func (f *HostsFile) Add(entry []string) {
