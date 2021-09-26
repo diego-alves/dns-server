@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"github.com/diego-alves/dns-server/pkg/api"
 	"github.com/diego-alves/dns-server/pkg/docker"
 	"github.com/diego-alves/dns-server/pkg/hosts"
 )
@@ -10,6 +11,15 @@ import (
 func main() {
 	entries := make(map[string][]string)
 	var hostsFile hosts.HostsFile
+
+	hosts, err := api.GetHosts()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(hosts)
+	for ip, hosts := range hosts {
+		hostsFile.Add(append([]string{ip}, hosts...))
+	}
 
 	// sig := make(chan os.Signal, 1)
 	// signal.Notify(sig,

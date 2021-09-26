@@ -7,6 +7,8 @@ import (
 	"sync"
 )
 
+const HOST_FILE = "/etc/hosts"
+
 type HostsFile struct {
 	mu sync.Mutex
 }
@@ -16,7 +18,7 @@ type AppendFunc func() *string
 
 func (h *HostsFile) read() []string {
 	h.mu.Lock()
-	file, err := os.ReadFile("/etc/hosts")
+	file, err := os.ReadFile(HOST_FILE)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -25,7 +27,7 @@ func (h *HostsFile) read() []string {
 
 func (h *HostsFile) write(lines []string) {
 	out := strings.Join(lines, "\n")
-	err := os.WriteFile("/etc/hosts", []byte(out), 0644)
+	err := os.WriteFile(HOST_FILE, []byte(out), 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
