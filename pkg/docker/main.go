@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/diego-alves/dns-server/pkg/hosts"
 	dockertypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
@@ -14,7 +15,7 @@ type Action string
 type DockerListener struct {
 	ctx     context.Context
 	cli     *client.Client
-	onStart chan<- []string
+	onStart chan<- hosts.Entry
 	onKill  chan<- string
 }
 
@@ -23,7 +24,7 @@ const (
 	KILL  Action = "kill"
 )
 
-func NewDockerListeger(onStart chan<- []string, onKill chan<- string) *DockerListener {
+func NewDockerListeger(onStart chan<- hosts.Entry, onKill chan<- string) *DockerListener {
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		panic(err)
@@ -62,11 +63,12 @@ func (l *DockerListener) entries(id string) (map[string][]string, error) {
 }
 
 func (l *DockerListener) notify(entries map[string][]string, action Action) {
-	for ip, hosts := range entries {
-		fmt.Println(action, ip, hosts)
+	for ip, hostnames := range entries {
+		fmt.Println(action, ip, hostnames)
 		switch action {
 		case START:
-			l.onStart <- append([]string{ip}, hosts...)
+			entry := hosts.NewEntry(ip, hostnames, "docker")
+			l.onStart <- *entry
 		case KILL:
 			l.onKill <- ip
 		default:

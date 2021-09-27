@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios@0.21.4"></script>
+</head>
+<body>
+    <section class="section">
+        <div id="app" class="container">
+            <div class="select">
+                <select>
+                    <option v-for="env in envs">{{env.split(".")[0]}}</option>
+                </select>
+            </div>
+            
+            <button class="button" @click="openModal(-1)">Adicionar</button>
+
+            <modal :active.sync="modalActive" v-model="selectedEntry"></modal>
+
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>Nome</th>
+                        <th>Endereço IP</th>
+                        <th></th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    <tr v-for="(entry, index) in entries">
+                        <td>{{entry.Source}}</td>
+                        <td>{{entry.IpAddress}}</td>
+                        <td>
+                            <ul>
+                                <li v-for="h in entry.Hostnames">{{h}}</li>
+                            </ul>
+                        </td>
+                        <td><button class="button is-small" @click="openModal(index)">Editar</button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+    <script>
+
+        Vue.component('modal', {
+            props: ['active', 'value'],
+            template: `<div class="modal" :class="{'is-active': active}">
+                <div class="modal-background"></div>
+                <div class="modal-content box">
+                    <div class="field">
+                        <label class="label">IP:</label>
+                        <div class="control">
+                            <input class="input" type="text" placeholder="10.133.14.17" v-model="value.IpAddress">
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">Hostname:</label>
+                        <div class="control">
+                            <input class="input" type="text" placeholder="meuhostname.com" v-model="value.Hostnames[0]">
+                        </div>
+                    </div>
+                    <div class="field is-grouped">
+                        <div class="control">
+                            <button class="button is-link">Salvar</button>
+                        </div>
+                        <div class="control">
+                            <button class="button is-link is-light" @click="$emit('update:active', false)">Cancelar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="modal-close is-large" aria-label="close" @click="$emit('update:active', false)"></button>
+            </div>`
+        })
+
+        var app = new Vue({
+            el: '#app',
+            data: {
+                envs: null,
+                entries: null,
+                selectedEntry: {Hostnames:[]},
+                modalActive: false
+            },
+            methods: {
+                openModal: function(index) {
+                    this.selectedEntry = index >= 0 ? this.entries[index] : {Hostnames:[]};
+                    this.modalActive = true
+                }
+            },
+            mounted () {
+                axios
+                    .get('http://localhost:8080/envs.json')
+                    .then(res => {
+                        this.envs = res.data;
+                    })
+                axios
+                    .get('http://127.0.0.1:8081/')
+                    .then(res => {
+                        
+                        this.entries = res.data;
+                    })
+            }
+        })
+    </script>
+</body>
+</html>

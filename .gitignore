@@ -1,3 +1,5 @@
 .vscode
 __debug_bin
 dns-server
+api/*.json
+scripts

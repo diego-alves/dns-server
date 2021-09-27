@@ -55,19 +55,18 @@ func (h *HostsFile) change(alterLine ChangeFunc, lastLine AppendFunc) {
 	h.write(lines)
 }
 
-func (f *HostsFile) Add(entry []string) {
+func (f *HostsFile) Add(entry Entry) {
 	end := true
-	new_line := strings.Join(entry, " ")
 	f.change(func(line string) *string {
-		if strings.HasPrefix(line, entry[0]+" ") {
+		if strings.HasPrefix(line, entry.IpAddress+" ") {
 			end = false
-			return &new_line
+			return entry.line()
 		} else {
 			return &line
 		}
 	}, func() *string {
 		if end {
-			return &new_line
+			return entry.line()
 		} else {
 			return nil
 		}
